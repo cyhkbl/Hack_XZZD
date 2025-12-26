@@ -2,8 +2,8 @@
 // @name         Hack XZZD
 // @namespace    http://tampermonkey.net/
 // @version      1.0
-// @description  ZJU Course Video Auto Player - 自动观看浙大课程视频
-// @author       GitHub Copilot
+// @description  自动观看学在浙大课程视频
+// @author       blank
 // @match        https://courses.zju.edu.cn/course/*
 // @grant        none
 // ==/UserScript==
@@ -11,28 +11,23 @@
 (function() {
     'use strict';
 
-    // ================= 配置区域 =================
+
     const CONFIG = {
-        // 视频链接的选择器 (列表页)
+
         videoLinkSelector: 'a.title',
         
-        // 视频页 URL 特征
         videoUrlKeyword: 'learning-activity',
         
-        // 自动播放检测间隔 (毫秒)
         checkInterval: 2000,
         
-        // 页面加载等待时间 (毫秒)
         pageLoadDelay: 3000,
 
-        // 寻找视频元素的超时时间 (毫秒)
         findVideoTimeout: 15000
     };
-    // ===========================================
+
 
     const STORAGE_KEY = 'hack_xzzd_state';
 
-    // 获取当前状态
     function getState() {
         const state = localStorage.getItem(STORAGE_KEY);
         return state ? JSON.parse(state) : { 
@@ -40,34 +35,30 @@
             watchedList: [], 
             courseUrl: '',
             currentTargetId: '',
-            playbackRate: 1.0 // 默认倍速
+            playbackRate: 1.0
         };
     }
 
-    // 保存状态
     function saveState(state) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
-    // 主逻辑入口
     function main() {
         const currentUrl = window.location.href;
         console.log('[Hack XZZD] 当前 URL:', currentUrl);
         
-        // 初始化 UI (所有页面都显示)
         setTimeout(initUI, 1000);
 
-        // 1. 列表页逻辑
+        // 列表页
         if (currentUrl.includes('/content')) {
             handleListPage();
         } 
-        // 2. 视频页逻辑
+        // 视频页
         else if (currentUrl.includes(CONFIG.videoUrlKeyword)) {
             handleVideoPage();
         }
     }
 
-    // ================= UI 逻辑 =================
     function initUI() {
         if (document.getElementById('hack-xzzd-panel')) return;
 
@@ -91,7 +82,7 @@
             width: 180px;
         `;
 
-        // 标题
+
         const title = document.createElement('div');
         title.innerText = 'Hack XZZD 控制台';
         title.style.fontWeight = 'bold';
@@ -101,7 +92,7 @@
         title.style.paddingBottom = '5px';
         panel.appendChild(title);
 
-        // 开关按钮
+
         const toggleBtn = document.createElement('button');
         toggleBtn.id = 'hack-xzzd-toggle-btn';
         toggleBtn.style.cssText = `
@@ -116,7 +107,7 @@
         toggleBtn.onclick = toggleHack;
         panel.appendChild(toggleBtn);
 
-        // 倍速控制
+
         const speedContainer = document.createElement('div');
         speedContainer.style.display = 'flex';
         speedContainer.style.alignItems = 'center';
@@ -148,7 +139,7 @@
             s.playbackRate = val;
             saveState(s);
             
-            // 立即应用到当前视频
+
             const video = document.querySelector('video');
             if (video) video.playbackRate = val;
         };
@@ -168,11 +159,11 @@
         if (btn) {
             if (state.isRunning) {
                 btn.innerText = '运行中 (点击停止)';
-                btn.style.background = '#28a745'; // Green
+                btn.style.background = '#28a745'; 
                 btn.style.color = '#fff';
             } else {
                 btn.innerText = '已停止 (点击开始)';
-                btn.style.background = '#dc3545'; // Red
+                btn.style.background = '#dc3545'; 
                 btn.style.color = '#fff';
             }
         }
@@ -183,7 +174,6 @@
         state.isRunning = !state.isRunning;
         
         if (state.isRunning) {
-            // 如果在列表页启动，记录 courseUrl
             if (window.location.href.includes('/content')) {
                 state.courseUrl = window.location.href;
             }
@@ -196,7 +186,6 @@
         updateUI();
 
         if (state.isRunning) {
-            // 根据当前页面触发逻辑
             if (window.location.href.includes('/content')) {
                 findAndPlayNextVideo(state);
             } else if (window.location.href.includes(CONFIG.videoUrlKeyword)) {
@@ -205,15 +194,13 @@
         }
     }
 
-    // ================= 列表页逻辑 =================
     function handleListPage() {
         console.log('[Hack XZZD] 检测到列表页');
         
-        // 自动寻找并播放
         setTimeout(() => {
             const state = getState();
             if (state.isRunning) {
-                // 安全检查
+
                 if (state.courseUrl && !window.location.href.includes(state.courseUrl.split('#')[0])) {
                      console.log('[Hack XZZD] 课程 URL 不匹配，停止运行');
                      state.isRunning = false;
@@ -268,11 +255,9 @@
         }
     }
 
-    // ================= 视频页逻辑 =================
     let videoCheckTimer = null;
 
     function handleVideoPage() {
-        // 清除旧的定时器，防止重复
         if (videoCheckTimer) clearInterval(videoCheckTimer);
 
         const state = getState();
@@ -284,7 +269,6 @@
         const startTime = Date.now();
 
         videoCheckTimer = setInterval(() => {
-            // 实时检查状态，如果用户中途停止，则不再操作
             const currentState = getState();
             if (!currentState.isRunning) {
                 clearInterval(videoCheckTimer);
@@ -305,7 +289,6 @@
                 if (playPromise !== undefined) {
                     playPromise.catch(error => {
                         console.log('[Hack XZZD] 自动播放失败，尝试模拟点击', error);
-                        // 尝试点击播放按钮 (逻辑同前)
                         let playBtn = document.querySelector('.vjs-big-play-button') || document.querySelector('button[title="Play"]');
                         if (!playBtn) {
                             const svgPath = document.querySelector('path[d^="M786.8 406.6"]');
@@ -320,7 +303,6 @@
                     finishVideo(currentState);
                 };
                 
-                // 备用进度检测
                 setInterval(() => {
                     if (video.duration > 0 && video.currentTime >= video.duration - 1) {
                         if (!video.ended) finishVideo(currentState);
@@ -350,10 +332,8 @@
             console.log(`[Hack XZZD] 已标记完成: ${idToMark}`);
         }
 
-        // 侧边栏跳转逻辑
         console.log('[Hack XZZD] 尝试侧边栏跳转...');
         
-        // 延时一点，确保页面状态稳定
         setTimeout(() => {
             const nextLink = findNextSidebarVideo();
             if (nextLink) {
@@ -371,31 +351,23 @@
     }
 
     function findNextSidebarVideo() {
-        // 用户提供的特征: <span tipsy="activity.title" ng-bind="activity.title" ...>
         const selector = 'span[ng-bind="activity.title"]';
         const spans = Array.from(document.querySelectorAll(selector));
         
         if (spans.length === 0) return null;
 
-        // 寻找当前激活的项
-        // 1. 尝试通过 URL 匹配
-        // 注意：Angular 路由通常是 #/xxx/xxx
-        // window.location.href 可能是 http://.../#/xxx/xxx
-        // 侧边栏链接 href 可能是 #/xxx/xxx
         
-        const currentHash = window.location.hash; // e.g. #/course/123/learning-activity/456
+        const currentHash = window.location.hash;
         let currentIndex = -1;
 
         for (let i = 0; i < spans.length; i++) {
             const link = spans[i].closest('a');
             if (link) {
                 const href = link.getAttribute('href');
-                // 宽松匹配
                 if (href && currentHash && href.includes(currentHash)) {
                     currentIndex = i;
                     break;
                 }
-                // 如果 href 是绝对路径
                 if (link.href === window.location.href) {
                     currentIndex = i;
                     break;
@@ -403,7 +375,6 @@
             }
         }
 
-        // 2. 如果 URL 匹配失败，尝试查找 active class
         if (currentIndex === -1) {
             const activeEl = document.querySelector('.active ' + selector) || document.querySelector('.current ' + selector);
             if (activeEl) {
@@ -419,22 +390,21 @@
         return null;
     }
 
-    // ================= 启动监听 =================
     let lastUrl = location.href; 
     new MutationObserver(() => {
         const url = location.href;
         if (url !== lastUrl) {
             lastUrl = url;
             console.log('[Hack XZZD] URL 变化检测:', url);
-            // URL 变化后，稍微等待页面渲染
+
             setTimeout(main, 1000);
         }
     }).observe(document, {subtree: true, childList: true});
 
-    // 页面加载完成后执行
+
     window.addEventListener('load', main);
     
-    // 针对某些加载特别慢的页面，或者 load 事件已经被触发的情况
+
     if (document.readyState === 'complete') {
         main();
     }
